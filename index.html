@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PinUs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Layout: single-page app with screen switching, landing → app ── */
+:root {
+  --bg: #FDFAF7;
+  --fg: #1a1a2e;
+  --fg-muted: #6b6b80;
+  --accent: #E8636F;
+  --accent-soft: #fce8ea;
+  --accent-dark: #c9434f;
+  --card: #ffffff;
+  --card-border: #f0ebe5;
+  --surface: #f5f0eb;
+  --nav-bg: rgba(253,250,247,0.92);
+  --success: #34a853;
+  --warning: #f5a623;
+  --map-water: #d4e6f1;
+  --map-land: #e8e2d9;
+  --map-road: #f5f0eb;
+  --map-park: #c8e6c0;
+  --shadow: 0 2px 16px rgba(26,26,46,0.07);
+  --shadow-lg: 0 8px 32px rgba(26,26,46,0.1);
+  --radius: 14px;
+  --radius-sm: 8px;
+  --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141420;
+    --fg: #e8e6f0;
+    --fg-muted: #9a98a8;
+    --accent: #f07882;
+    --accent-soft: #2d1a1e;
+    --accent-dark: #ff8a93;
+    --card: #1e1e30;
+    --card-border: #2a2a3e;
+    --surface: #1a1a2c;
+    --nav-bg: rgba(20,20,32,0.92);
+    --map-water: #1a2a3a;
+    --map-land: #252535;
+    --map-road: #2a2a3e;
+    --map-park: #1a2e1a;
+    --shadow: 0 2px 16px rgba(0,0,0,0.25);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141420;
+  --fg: #e8e6f0;
+  --fg-muted: #9a98a8;
+  --accent: #f07882;
+  --accent-soft: #2d1a1e;
+  --accent-dark: #ff8a93;
+  --card: #1e1e30;
+  --card-border: #2a2a3e;
+  --surface: #1a1a2c;
+  --nav-bg: rgba(20,20,32,0.92);
+  --map-water: #1a2a3a;
+  --map-land: #252535;
+  --map-road: #2a2a3e;
+  --map-park: #1a2e1a;
+  --shadow: 0 2px 16px rgba(0,0,0,0.25);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.35);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; }
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ── Landing page ── */
+.landing-nav {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 50;
+  background: var(--nav-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--card-border);
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 100;
+  background: var(--bg);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
+}
+.logo-pin {
+  width: 32px;
+  height: 32px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  list-style: none;
+}
+.nav-links a {
+  color: var(--fg-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--accent); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: 50px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.25s ease;
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+.btn-outline {
+  background: transparent;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+}
+.btn-outline:hover { background: var(--accent-soft); }
+.btn-sm { padding: 8px 20px; font-size: 0.85rem; }
+.btn-lg { padding: 16px 36px; font-size: 1.05rem; }
+
+/* Hero */
+.hero {
+  padding-block: 60px 40px;
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto;
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 6px 16px;
+  border-radius: 50px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  margin-bottom: 24px;
+}
+.hero h1 {
+  font-size: clamp(2.2rem, 6vw, 3.4rem);
+  line-height: 1.15;
+  margin-bottom: 20px;
+  color: var(--fg);
+}
+.hero h1 em {
+  color: var(--accent);
+  font-style: normal;
+}
+.hero p {
+  font-size: 1.1rem;
+  color: var(--fg-muted);
+  max-width: 520px;
+  margin: 0 auto 32px;
+}
+.hero-cta {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Map illustration */
+.hero-visual {
+  margin-top: 48px;
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  aspect-ratio: 16/9;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  background: var(--map-land);
+}
+
+/* Features */
+.section {
+  padding-block: 64px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.section h2 {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  margin-bottom: 16px;
+}
+.section > p {
+  color: var(--fg-muted);
+  max-width: 560px;
+  margin-bottom: 40px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+.feature-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.feature-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.feature-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  font-size: 1.3rem;
+}
+.feature-card h3 {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.feature-card p {
+  font-size: 0.88rem;
+  color: var(--fg-muted);
+  line-height: 1.55;
+}
+
+/* Pricing */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+.price-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 32px 24px;
+  text-align: center;
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.price-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.price-card.popular {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-lg);
+}
+.popular-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 16px;
+  border-radius: 50px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.price-plan {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+.price-amount {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.price-period {
+  font-size: 0.82rem;
+  color: var(--fg-muted);
+  margin-bottom: 20px;
+}
+.price-features {
+  list-style: none;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.price-features li {
+  font-size: 0.88rem;
+  color: var(--fg-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.price-features li::before {
+  content: '';
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23E8636F' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* How it works */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  counter-reset: step;
+}
+.step {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  counter-increment: step;
+}
+.step-num {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.step h3 {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+.step p {
+  font-size: 0.88rem;
+  color: var(--fg-muted);
+}
+
+/* Trust section */
+.trust-bar {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+  padding-block: 32px;
+  border-top: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
+}
+.trust-item {
+  text-align: center;
+}
+.trust-item .num {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.trust-item .label {
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+}
+
+/* Footer */
+.footer {
+  padding-block: 40px;
+  text-align: center;
+  border-top: 1px solid var(--card-border);
+  max-width: 900px;
+  margin: 0 auto;
+}
+.footer p {
+  font-size: 0.82rem;
+  color: var(--fg-muted);
+}
+.footer a { color: var(--accent); text-decoration: none; }
+
+/* ── App screens ── */
+.app-container {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Auth screen */
+.auth-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  text-align: center;
+  padding-block: 40px;
+}
+.auth-screen h1 {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+.auth-screen .subtitle {
+  color: var(--fg-muted);
+  margin-bottom: 32px;
+  font-size: 0.95rem;
+}
+.input-group {
+  width: 100%;
+  max-width: 340px;
+  margin-bottom: 16px;
+}
+.input-group label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-align: left;
+  color: var(--fg-muted);
+}
+.input-group input, .input-group select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  background: var(--card);
+  color: var(--fg);
+  transition: border-color 0.2s;
+}
+.input-group input:focus, .input-group select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.phone-input-row {
+  display: flex;
+  gap: 8px;
+}
+.phone-input-row select {
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.otp-inputs {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.otp-inputs input {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  border: 2px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--fg);
+  font-family: var(--font-body);
+}
+.otp-inputs input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 340px;
+  margin: 20px 0;
+  color: var(--fg-muted);
+  font-size: 0.82rem;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--card-border);
+}
+
+.consent-box {
+  background: var(--accent-soft);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin: 20px 0;
+  max-width: 340px;
+  text-align: left;
+}
+.consent-box h4 {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--accent);
+}
+.consent-box ul {
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.consent-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--fg-muted);
+}
+.consent-check input { margin-top: 3px; accent-color: var(--accent); }
+
+/* Plan selection */
+.plan-select-screen {
+  padding-block: 40px;
+}
+.plan-select-screen h2 {
+  text-align: center;
+  font-size: 1.6rem;
+  margin-bottom: 8px;
+}
+.plan-select-screen > p {
+  text-align: center;
+  color: var(--fg-muted);
+  margin-bottom: 28px;
+  font-size: 0.92rem;
+}
+.plan-option {
+  background: var(--card);
+  border: 2px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.plan-option:hover { border-color: var(--accent); }
+.plan-option.selected { border-color: var(--accent); background: var(--accent-soft); }
+.plan-radio {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--card-border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.plan-option.selected .plan-radio {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.plan-option.selected .plan-radio::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+}
+.plan-details { flex: 1; min-width: 0; }
+.plan-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+.plan-desc { font-size: 0.8rem; color: var(--fg-muted); }
+.plan-price {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* Pairing */
+.pair-screen {
+  padding-block: 40px;
+  text-align: center;
+}
+.pair-screen h2 {
+  font-size: 1.6rem;
+  margin-bottom: 8px;
+}
+.pair-screen > p {
+  color: var(--fg-muted);
+  font-size: 0.92rem;
+  margin-bottom: 28px;
+}
+.pair-code-display {
+  background: var(--card);
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius);
+  padding: 28px;
+  margin-bottom: 20px;
+}
+.pair-code-display .label {
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+.pair-code {
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.join-code-input {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+.join-code-input input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  text-align: center;
+  background: var(--card);
+  color: var(--fg);
+}
+.join-code-input input:focus { outline: none; border-color: var(--accent); }
+
+/* Map screen */
+.map-screen {
+  position: relative;
+  height: 100vh;
+  height: 100%;
+  overflow: hidden;
+}
+html.in-app, html.in-app body { height: 100%; }
+
+.map-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--nav-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.map-header .logo { font-size: 1.2rem; }
+.map-header-actions {
+  display: flex;
+  gap: 8px;
+}
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: var(--card);
+  color: var(--fg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  transition: all 0.2s;
+}
+.icon-btn:hover { background: var(--accent-soft); color: var(--accent); }
+.icon-btn.sos { background: #e74c3c; color: #fff; }
+.icon-btn.sos:hover { background: #c0392b; }
+
+.map-canvas {
+  width: 100%;
+  height: 100%;
+  background: var(--map-land);
+  position: relative;
+}
+
+/* Map markers */
+.map-marker {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, -100%);
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+.map-marker:hover { transform: translate(-50%, -100%) scale(1.1); }
+.marker-label {
+  background: var(--card);
+  color: var(--fg);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--shadow);
+  margin-bottom: 4px;
+  border: 1px solid var(--card-border);
+}
+.marker-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(232,99,111,0.4);
+  position: relative;
+}
+.marker-dot::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: rgba(232,99,111,0.15);
+  animation: pulse 2s ease-in-out infinite;
+}
+.marker-dot.partner { background: #3b82f6; box-shadow: 0 2px 8px rgba(59,130,246,0.4); }
+.marker-dot.partner::after { background: rgba(59,130,246,0.15); }
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.8); opacity: 0; }
+}
+
+/* Status bar at bottom */
+.map-status {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--nav-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--card-border);
+}
+.status-users {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+}
+.status-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  min-width: 180px;
+  border: 1px solid var(--card-border);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.status-user:hover { border-color: var(--accent); }
+.status-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+.status-info { min-width: 0; }
+.status-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.status-location {
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.status-live {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  flex-shrink: 0;
+  animation: livePulse 2s ease infinite;
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Profile / Settings slide-up */
+.panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.panel-overlay.open { opacity: 1; pointer-events: auto; }
+.panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 101;
+  background: var(--bg);
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 24px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(24px, env(safe-area-inset-left, 0px));
+  padding-right: max(24px, env(safe-area-inset-right, 0px));
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.panel-overlay.open .panel { transform: translateY(0); }
+.panel-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--card-border);
+  margin: 0 auto 20px;
+}
+.panel h3 {
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.profile-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+}
+.profile-info h4 {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.profile-info p {
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s;
+  border: none;
+  background: none;
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  text-align: left;
+  width: 100%;
+}
+.menu-item:hover { background: var(--surface); }
+.menu-item .icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.menu-item .text { flex: 1; }
+.menu-item .arrow { color: var(--fg-muted); font-size: 0.8rem; }
+.menu-item.danger { color: #e74c3c; }
+.menu-item.danger .icon { background: #fce8e8; }
+
+/* Notification toast */
+.toast {
+  position: fixed;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%) translateY(-120%);
+  z-index: 200;
+  background: var(--card);
+  color: var(--fg);
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.88rem;
+  font-weight: 500;
+  border: 1px solid var(--card-border);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  max-width: 90vw;
+  white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .nav-links { display: none; }
+  .hero { padding-block: 40px 24px; }
+  .trust-bar { gap: 24px; }
+  .pricing-grid { grid-template-columns: 1fr; }
+  .features-grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ LANDING PAGE ═══════════ -->
+<div id="landing" class="screen active">
+
+  <nav class="landing-nav">
+    <a href="#" class="logo" onclick="event.preventDefault()">
+      <svg class="logo-pin" viewBox="0 0 32 32" fill="none">
+        <circle cx="16" cy="14" r="10" fill="var(--accent)" opacity="0.15"/>
+        <path d="M16 3C10.48 3 6 7.48 6 13c0 7.25 10 16 10 16s10-8.75 10-16c0-5.52-4.48-10-10-10z" fill="var(--accent)"/>
+        <circle cx="16" cy="13" r="4" fill="#fff"/>
+        <circle cx="13" cy="12.5" r="1.2" fill="var(--accent)"/>
+        <circle cx="19" cy="12.5" r="1.2" fill="var(--accent)"/>
+        <path d="M13.5 15c0 0 1.2 1.8 2.5 1.8s2.5-1.8 2.5-1.8" stroke="var(--accent)" stroke-width="0.8" stroke-linecap="round" fill="none"/>
+      </svg>
+      PinUs <span style="background:var(--accent);color:#fff;font-size:0.62rem;font-weight:700;letter-spacing:0.08em;padding:3px 8px;border-radius:20px;vertical-align:middle;margin-left:2px;">CONCEPT DEMO</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features-section" onclick="event.preventDefault();document.getElementById('features-section').scrollIntoView({behavior:'smooth'})">Features</a></li>
+      <li><a href="#pricing-section" onclick="event.preventDefault();document.getElementById('pricing-section').scrollIntoView({behavior:'smooth'})">Pricing</a></li>
+      <li><a href="#how-section" onclick="event.preventDefault();document.getElementById('how-section').scrollIntoView({behavior:'smooth'})">How it works</a></li>
+      <li><button class="btn btn-primary btn-sm" onclick="showScreen('auth')">Try the Demo</button></li>
+    </ul>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--accent)"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+      Built for love, powered by trust
+    </div>
+    <h1>Know where your <em>loved ones</em> are. Always.</h1>
+    <p>PinUs is a private, real-time location sharing app made for couples and families. No strangers, no ghost mode — just the people who matter most.</p>
+    <p style="background:var(--accent-soft);border:1px solid var(--accent);color:var(--accent-dark);border-radius:12px;padding:12px 18px;font-size:0.9rem;max-width:560px;margin:18px auto 0;">This is a concept demo: sign-up, OTP, pairing and the live map are all simulated. No real data is collected and no payments are taken.</p>
+    <div class="hero-cta">
+      <button class="btn btn-primary btn-lg" onclick="showScreen('auth')">Try the Demo</button>
+      <button class="btn btn-outline btn-lg" onclick="document.getElementById('how-section').scrollIntoView({behavior:'smooth'})">See how it works</button>
+    </div>
+
+    <div class="hero-visual" id="heroMap">
+      <canvas id="heroCanvas" style="width:100%;height:100%;display:block;"></canvas>
+      <div class="map-marker" style="left:38%;top:45%;">
+        <span class="marker-label">Bhumika</span>
+        <div class="marker-dot"></div>
+      </div>
+      <div class="map-marker" style="left:62%;top:55%;">
+        <span class="marker-label">Partner</span>
+        <div class="marker-dot partner"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="trust-bar">
+    <div class="trust-item"><div class="num">100%</div><div class="label">Simulated data</div></div>
+    <div class="trust-item"><div class="num">0</div><div class="label">Real info collected</div></div>
+    <div class="trust-item"><div class="num">&#8377;0</div><div class="label">Cost to try</div></div>
+    <div class="trust-item"><div class="num">2 min</div><div class="label">Demo preview</div></div>
+  </div>
+
+  <section class="section" id="features-section">
+    <div class="section-label">Features</div>
+    <h2>Everything you need, nothing you don't</h2>
+    <p>We stripped away the noise. PinUs does one thing perfectly: keeping you connected with the people who matter.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></svg>
+        </div>
+        <h3>Real-time GPS</h3>
+        <p>See your partner's live location on the map, updated every 10-30 seconds. Simulated in this demo.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        </div>
+        <h3>No Ghost Mode</h3>
+        <p>Everyone's location is always visible. Subscribing is a conscious act of trust — no hiding, no excuses.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <h3>Private Circle</h3>
+        <p>Only paired users can see each other. 2 for couples, up to 6 for families. No strangers, ever.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <h3>SOS Alert</h3>
+        <p>One-tap emergency alert sends your live location and battery status to all paired members instantly.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <h3>Name Labels</h3>
+        <p>See who's where at a glance. Each person's name appears right on the map above their live pin.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4m7 14l5-5-5-5m5 5H9"/></svg>
+        </div>
+        <h3>Instant Unlink</h3>
+        <p>Leave any time. One tap stops sharing your location permanently. No guilt, no questions, full control.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="how-section">
+    <div class="section-label">How it works</div>
+    <h2>Three steps to stay connected</h2>
+    <p>Getting started with PinUs takes less than two minutes.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <h3>Sign up with your phone</h3>
+          <p>Enter your phone number and verify with OTP. Your phone number is your identity — simple and secure.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <h3>Share your invite code</h3>
+          <p>Get a unique 6-digit code. Send it to your partner or family members. They enter it, and you're paired.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <h3>See each other, always</h3>
+          <p>Both of you appear on a shared private map with your names. Real-time, accurate, and completely private.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="pricing-section">
+    <div class="section-label">Pricing</div>
+    <h2>Simple plans, no surprises</h2>
+    <p>Choose the plan that fits your circle. Cancel anytime.</p>
+    <p style="color:var(--fg-muted);font-size:0.88rem;margin-top:6px;">Planned pricing - payments are not live in this demo.</p>
+    <div class="pricing-grid">
+      <div class="price-card popular">
+        <div class="popular-badge">Most Popular</div>
+        <div class="price-plan">Couples</div>
+        <div class="price-amount">&#8377;99</div>
+        <div class="price-period">per month</div>
+        <ul class="price-features">
+          <li>2 people</li>
+          <li>Real-time GPS tracking</li>
+          <li>Name labels on map</li>
+          <li>SOS emergency alerts</li>
+          <li>Battery low notifications</li>
+          <li>Instant unlink anytime</li>
+        </ul>
+        <button class="btn btn-primary" style="width:100%;" onclick="showScreen('auth')">Try the Demo</button>
+      </div>
+      <div class="price-card">
+        <div class="price-plan">Family of 4</div>
+        <div class="price-amount">&#8377;249</div>
+        <div class="price-period">per month</div>
+        <ul class="price-features">
+          <li>Up to 4 people</li>
+          <li>Everything in Couples</li>
+          <li>Family group map</li>
+          <li>"Reached home" alerts</li>
+          <li>Individual pairing control</li>
+          <li>Priority support</li>
+        </ul>
+        <button class="btn btn-outline" style="width:100%;" onclick="showScreen('auth')">Try the Demo</button>
+      </div>
+      <div class="price-card">
+        <div class="price-plan">Family of 6</div>
+        <div class="price-amount">&#8377;300</div>
+        <div class="price-period">per month</div>
+        <ul class="price-features">
+          <li>Up to 6 people</li>
+          <li>Everything in Family</li>
+          <li>Extended family circle</li>
+          <li>Multiple group views</li>
+          <li>Admin controls</li>
+          <li>Priority support</li>
+        </ul>
+        <button class="btn btn-outline" style="width:100%;" onclick="showScreen('auth')">Try the Demo</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p style="margin-bottom:8px;">
+      <a href="#" onclick="event.preventDefault()">Privacy Policy</a> &middot;
+      <a href="#" onclick="event.preventDefault()">Terms of Service</a> &middot;
+      <a href="#" onclick="event.preventDefault()">Contact</a>
+    </p>
+    <p>PinUs &copy; 2026. Made with care in India. Concept demo - no real location data is collected or shared.</p>
+  </footer>
+
+</div>
+
+<!-- ═══════════ AUTH SCREEN ═══════════ -->
+<div id="auth" class="screen">
+  <div class="app-container">
+    <div class="auth-screen">
+      <svg width="48" height="48" viewBox="0 0 32 32" fill="none" style="margin-bottom:16px;">
+        <circle cx="16" cy="14" r="10" fill="var(--accent)" opacity="0.15"/>
+        <path d="M16 3C10.48 3 6 7.48 6 13c0 7.25 10 16 10 16s10-8.75 10-16c0-5.52-4.48-10-10-10z" fill="var(--accent)"/>
+        <circle cx="16" cy="13" r="4" fill="#fff"/>
+        <circle cx="13" cy="12.5" r="1.2" fill="var(--accent)"/>
+        <circle cx="19" cy="12.5" r="1.2" fill="var(--accent)"/>
+        <path d="M13.5 15c0 0 1.2 1.8 2.5 1.8s2.5-1.8 2.5-1.8" stroke="var(--accent)" stroke-width="0.8" stroke-linecap="round" fill="none"/>
+      </svg>
+      <h1>Welcome to <span style="color:var(--accent)">PinUs</span></h1>
+      <p class="subtitle">Sign in to start sharing your location with your loved ones</p>
+        <p style="color:var(--fg-muted);font-size:0.85rem;margin-bottom:14px;">Demo only: enter any name and number. Nothing is sent or stored.</p>
+
+      <div id="authStep1">
+        <div class="input-group">
+          <label for="userName">Your name</label>
+          <input type="text" id="userName" placeholder="Enter your name" autocomplete="name">
+        </div>
+        <div class="input-group">
+          <label for="userPhone">Phone number</label>
+          <div class="phone-input-row">
+            <select id="countryCode">
+              <option value="+91">+91</option>
+              <option value="+1">+1</option>
+              <option value="+44">+44</option>
+              <option value="+971">+971</option>
+            </select>
+            <input type="tel" id="userPhone" placeholder="98765 43210" autocomplete="tel">
+          </div>
+        </div>
+
+        <div class="consent-box">
+          <h4>Before you continue</h4>
+          <ul>
+            <li>Your live location will be shared with paired members only</li>
+            <li>You can stop sharing anytime with instant unlink</li>
+            <li>We never sell your data or share with third parties</li>
+            <li>Compliant with India's DPDP Act 2023</li>
+          </ul>
+          <label class="consent-check">
+            <input type="checkbox" id="consentCheck">
+            I consent to sharing my location with paired members
+          </label>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;max-width:340px;" onclick="sendOTP()">Send OTP</button>
+        <p style="font-size:0.78rem;color:var(--fg-muted);margin-top:12px;">By continuing, you agree to our Terms &amp; Privacy Policy</p>
+      </div>
+
+      <div id="authStep2" hidden>
+        <p style="color:var(--fg-muted);margin-bottom:20px;font-size:0.92rem;">Enter any 6 digits (demo - no real code is sent)<br><strong id="otpPhone" style="color:var(--fg);">+91 98765 43210</strong></p>
+        <div class="otp-inputs" id="otpInputs">
+          <input type="text" maxlength="1" inputmode="numeric" id="otp1">
+          <input type="text" maxlength="1" inputmode="numeric" id="otp2">
+          <input type="text" maxlength="1" inputmode="numeric" id="otp3">
+          <input type="text" maxlength="1" inputmode="numeric" id="otp4">
+          <input type="text" maxlength="1" inputmode="numeric" id="otp5">
+          <input type="text" maxlength="1" inputmode="numeric" id="otp6">
+        </div>
+        <button class="btn btn-primary" style="width:100%;max-width:340px;" onclick="verifyOTP()">Verify &amp; Continue</button>
+        <p style="font-size:0.82rem;color:var(--fg-muted);margin-top:16px;">
+          Didn't receive it? <a href="#" style="color:var(--accent);text-decoration:none;" onclick="event.preventDefault();showToast('OTP resent!')">Resend OTP</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PLAN SELECTION ═══════════ -->
+<div id="plans" class="screen">
+  <div class="app-container">
+    <div class="plan-select-screen">
+      <h2>Choose your plan</h2>
+      <p>Start with a 7-day free trial. Cancel anytime.</p>
+
+      <div class="plan-option selected" onclick="selectPlan(this, 'couple')">
+        <div class="plan-radio"></div>
+        <div class="plan-details">
+          <div class="plan-name">Couples</div>
+          <div class="plan-desc">For 2 people — you and your partner</div>
+        </div>
+        <div class="plan-price">&#8377;99<span style="font-size:0.7rem;font-family:var(--font-body);font-weight:400;color:var(--fg-muted)">/mo</span></div>
+      </div>
+
+      <div class="plan-option" onclick="selectPlan(this, 'family4')">
+        <div class="plan-radio"></div>
+        <div class="plan-details">
+          <div class="plan-name">Family of 4</div>
+          <div class="plan-desc">For families — up to 4 members</div>
+        </div>
+        <div class="plan-price">&#8377;249<span style="font-size:0.7rem;font-family:var(--font-body);font-weight:400;color:var(--fg-muted)">/mo</span></div>
+      </div>
+
+      <div class="plan-option" onclick="selectPlan(this, 'family6')">
+        <div class="plan-radio"></div>
+        <div class="plan-details">
+          <div class="plan-name">Family of 6</div>
+          <div class="plan-desc">Extended family — up to 6 members</div>
+        </div>
+        <div class="plan-price">&#8377;300<span style="font-size:0.7rem;font-family:var(--font-body);font-weight:400;color:var(--fg-muted)">/mo</span></div>
+      </div>
+
+      <button class="btn btn-primary btn-lg" style="width:100%;margin-top:24px;" onclick="showScreen('pair')">Start 7-Day Free Trial</button>
+      <p style="font-size:0.78rem;color:var(--fg-muted);text-align:center;margin-top:10px;">No charge until trial ends. Pay via UPI, card, or net banking.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PAIRING SCREEN ═══════════ -->
+<div id="pair" class="screen">
+  <div class="app-container">
+    <div class="pair-screen">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" style="margin-bottom:16px;">
+        <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+      </svg>
+      <h2>Pair with your people</h2>
+      <p>Share this code with your partner or family to connect</p>
+
+      <div class="pair-code-display">
+        <div class="label">Your invite code</div>
+        <div class="pair-code" id="pairCode">------</div>
+        <button class="btn btn-sm btn-outline" style="margin-top:12px;" onclick="copyCode()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy Code
+        </button>
+      </div>
+
+      <div class="divider">or join with a code</div>
+
+      <div class="join-code-input">
+        <input type="text" id="joinCodeInput" placeholder="Enter 6-digit code" maxlength="6" inputmode="numeric">
+        <button class="btn btn-primary" onclick="joinWithCode()">Join</button>
+      </div>
+
+      <button class="btn btn-outline" style="width:100%;margin-top:24px;" onclick="skipToMap()">Skip for now</button>
+      <p style="font-size:0.78rem;color:var(--fg-muted);margin-top:10px;">You can pair later from Settings</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MAP SCREEN ═══════════ -->
+<div id="map" class="screen">
+  <div class="map-screen">
+    <div class="map-header">
+      <span class="logo" style="font-size:1.1rem;">
+        <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+          <path d="M16 3C10.48 3 6 7.48 6 13c0 7.25 10 16 10 16s10-8.75 10-16c0-5.52-4.48-10-10-10z" fill="var(--accent)"/>
+          <circle cx="16" cy="13" r="4" fill="#fff"/>
+        </svg>
+        PinUs
+      </span>
+      <div class="map-header-actions">
+        <button class="icon-btn" onclick="centerMap()" title="Center map">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>
+        </button>
+        <button class="icon-btn sos" onclick="triggerSOS()" title="SOS Alert">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </button>
+        <button class="icon-btn" onclick="openProfile()" title="Profile">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="map-canvas" id="mapCanvas">
+      <canvas id="liveMapCanvas" style="width:100%;height:100%;display:block;"></canvas>
+      <!-- Markers injected by JS -->
+    </div>
+
+    <div class="map-status" id="mapStatus">
+      <div class="status-users" id="statusUsers">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PROFILE PANEL ═══════════ -->
+<div class="panel-overlay" id="profilePanel" onclick="if(event.target===this)closeProfile()">
+  <div class="panel">
+    <div class="panel-handle"></div>
+    <div class="profile-header">
+      <div class="profile-avatar" id="profileAvatar">B</div>
+      <div class="profile-info">
+        <h4 id="profileName">Bhumika</h4>
+        <p id="profilePhone">+91 98765 43210</p>
+      </div>
+    </div>
+    <div style="background:var(--accent-soft);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+      <div class="status-live"></div>
+      <span style="font-size:0.82rem;color:var(--accent);font-weight:600;">Location sharing active</span>
+    </div>
+    <div class="menu-list">
+      <button class="menu-item" onclick="showToast('Invite code copied!')">
+        <span class="icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        </span>
+        <span class="text">Invite to circle</span>
+        <span class="arrow">&rsaquo;</span>
+      </button>
+      <button class="menu-item" onclick="showToast('Plan: Couples (₹99/mo)')">
+        <span class="icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </span>
+        <span class="text">Subscription</span>
+        <span class="arrow">&rsaquo;</span>
+      </button>
+      <button class="menu-item" onclick="showToast('Notifications on')">
+        <span class="icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </span>
+        <span class="text">Notifications</span>
+        <span class="arrow">&rsaquo;</span>
+      </button>
+      <button class="menu-item" onclick="showToast('Privacy settings')">
+        <span class="icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        </span>
+        <span class="text">Privacy &amp; Data</span>
+        <span class="arrow">&rsaquo;</span>
+      </button>
+      <button class="menu-item" onclick="showToast('Help center')">
+        <span class="icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        <span class="text">Help &amp; Support</span>
+        <span class="arrow">&rsaquo;</span>
+      </button>
+      <button class="menu-item danger" onclick="unlinkPartner()">
+        <span class="icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4m7 14l5-5-5-5m5 5H9"/></svg>
+        </span>
+        <span class="text">Unlink &amp; stop sharing</span>
+        <span class="arrow">&rsaquo;</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──
+const state = {
+  currentScreen: 'landing',
+  userName: 'Bhumika',
+  phone: '+91 98765 43210',
+  pairCode: '',
+  selectedPlan: 'couple',
+  paired: false,
+  users: []
+};
+
+// ── Screen management ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.add('active');
+    state.currentScreen = id;
+  }
+  if (id === 'map') {
+    document.documentElement.classList.add('in-app');
+    initMap();
+  } else {
+    document.documentElement.classList.remove('in-app');
+  }
+  if (id === 'pair') generatePairCode();
+  window.scrollTo(0, 0);
+}
+
+// ── Toast ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Auth ──
+function sendOTP() {
+  const name = document.getElementById('userName').value.trim();
+  const phone = document.getElementById('userPhone').value.trim();
+  const consent = document.getElementById('consentCheck').checked;
+  if (!name) { showToast('Please enter your name'); return; }
+  if (!phone || phone.length < 8) { showToast('Please enter a valid phone number'); return; }
+  if (!consent) { showToast('Please consent to location sharing'); return; }
+  state.userName = name;
+  const code = document.getElementById('countryCode').value;
+  state.phone = code + ' ' + phone;
+  document.getElementById('otpPhone').textContent = state.phone;
+  document.getElementById('authStep1').hidden = true;
+  document.getElementById('authStep2').hidden = false;
+  showToast('OTP sent to ' + state.phone);
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('#otpInputs input');
+    const demo = '847293';
+    inputs.forEach((inp, i) => { inp.value = demo[i]; });
+  }, 800);
+}
+
+// OTP input auto-advance
+document.addEventListener('DOMContentLoaded', () => {
+  const otpInputs = document.querySelectorAll('#otpInputs input');
+  otpInputs.forEach((inp, i) => {
+    inp.addEventListener('input', () => {
+      if (inp.value && i < otpInputs.length - 1) otpInputs[i + 1].focus();
+    });
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !inp.value && i > 0) otpInputs[i - 1].focus();
+    });
+  });
+});
+
+function verifyOTP() {
+  const vals = Array.from(document.querySelectorAll('#otpInputs input')).map(i => i.value).join('');
+  if (vals.length < 6) { showToast('Please enter the full OTP'); return; }
+  showToast('Verified successfully!');
+  setTimeout(() => showScreen('plans'), 600);
+}
+
+// ── Plan selection ──
+function selectPlan(el, plan) {
+  document.querySelectorAll('.plan-option').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  state.selectedPlan = plan;
+}
+
+// ── Pairing ──
+function generatePairCode() {
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  state.pairCode = code;
+  document.getElementById('pairCode').textContent = code;
+}
+
+function copyCode() {
+  try {
+    navigator.clipboard.writeText(state.pairCode);
+    showToast('Code copied: ' + state.pairCode);
+  } catch {
+    showToast('Code: ' + state.pairCode);
+  }
+}
+
+function joinWithCode() {
+  const code = document.getElementById('joinCodeInput').value.trim();
+  if (code.length !== 6) { showToast('Enter a valid 6-digit code'); return; }
+  state.paired = true;
+  showToast('Paired successfully!');
+  setTimeout(() => showScreen('map'), 800);
+}
+
+function skipToMap() {
+  state.paired = true;
+  showScreen('map');
+}
+
+// ── Profile ──
+function openProfile() {
+  document.getElementById('profileAvatar').textContent = state.userName.charAt(0).toUpperCase();
+  document.getElementById('profileName').textContent = state.userName;
+  document.getElementById('profilePhone').textContent = state.phone;
+  document.getElementById('profilePanel').classList.add('open');
+}
+function closeProfile() {
+  document.getElementById('profilePanel').classList.remove('open');
+}
+function unlinkPartner() {
+  closeProfile();
+  showToast('Location sharing stopped. You have been unlinked.');
+}
+
+// ── Map ──
+const mapColors = {
+  userColors: ['#E8636F', '#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899']
+};
+
+function initMap() {
+  drawMapBackground();
+  placeMarkers();
+  renderStatusBar();
+  // Simulate movement
+  setInterval(simulateMovement, 3000);
+}
+
+function drawMapBackground() {
+  const canvas = document.getElementById('liveMapCanvas');
+  if (!canvas) return;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * 2;
+  canvas.height = rect.height * 2;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+  const w = rect.width, h = rect.height;
+
+  // Background
+  const cs = getComputedStyle(document.documentElement);
+  const land = cs.getPropertyValue('--map-land').trim();
+  const water = cs.getPropertyValue('--map-water').trim();
+  const road = cs.getPropertyValue('--map-road').trim();
+  const park = cs.getPropertyValue('--map-park').trim();
+
+  ctx.fillStyle = land;
+  ctx.fillRect(0, 0, w, h);
+
+  // Water bodies
+  ctx.fillStyle = water;
+  ctx.beginPath();
+  ctx.ellipse(w * 0.85, h * 0.2, w * 0.18, h * 0.12, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.8);
+  ctx.quadraticCurveTo(w * 0.15, h * 0.7, w * 0.3, h * 0.85);
+  ctx.quadraticCurveTo(w * 0.45, h, w * 0.1, h);
+  ctx.lineTo(0, h);
+  ctx.fill();
+
+  // Parks
+  ctx.fillStyle = park;
+  ctx.beginPath();
+  ctx.ellipse(w * 0.25, h * 0.35, w * 0.08, h * 0.06, -0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(w * 0.7, h * 0.7, w * 0.06, h * 0.05, 0.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Roads grid
+  ctx.strokeStyle = road;
+  ctx.lineWidth = 3;
+  const roads = [
+    [[0, h*0.3], [w, h*0.35]],
+    [[0, h*0.55], [w, h*0.5]],
+    [[0, h*0.75], [w*0.6, h*0.78]],
+    [[w*0.2, 0], [w*0.22, h]],
+    [[w*0.45, 0], [w*0.48, h]],
+    [[w*0.7, 0], [w*0.68, h]],
+    [[w*0.15, h*0.15], [w*0.55, h*0.18]],
+    [[w*0.5, h*0.42], [w*0.9, h*0.45]],
+  ];
+  roads.forEach(r => {
+    ctx.beginPath();
+    ctx.moveTo(r[0][0], r[0][1]);
+    ctx.lineTo(r[1][0], r[1][1]);
+    ctx.stroke();
+  });
+
+  // Main roads
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(w*0.1, 0);
+  ctx.quadraticCurveTo(w*0.35, h*0.5, w*0.9, h);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, h*0.45);
+  ctx.quadraticCurveTo(w*0.5, h*0.4, w, h*0.6);
+  ctx.stroke();
+
+  // Buildings (small rectangles)
+  ctx.fillStyle = road;
+  for (let i = 0; i < 40; i++) {
+    const bx = Math.random() * w;
+    const by = Math.random() * h;
+    const bw = 6 + Math.random() * 10;
+    const bh = 6 + Math.random() * 8;
+    ctx.fillRect(bx, by, bw, bh);
+  }
+}
+
+// Simulated users
+const simUsers = [
+  { name: '', x: 40, y: 45, color: '#E8636F', location: 'Near Connaught Place', isYou: true },
+  { name: 'Partner', x: 58, y: 55, color: '#3b82f6', location: 'Lajpat Nagar Market' }
+];
+
+function placeMarkers() {
+  simUsers[0].name = state.userName || 'You';
+  const container = document.getElementById('mapCanvas');
+  // Remove old markers
+  container.querySelectorAll('.map-marker').forEach(m => m.remove());
+
+  simUsers.forEach((u, i) => {
+    const marker = document.createElement('div');
+    marker.className = 'map-marker';
+    marker.style.left = u.x + '%';
+    marker.style.top = u.y + '%';
+    marker.id = 'marker-' + i;
+    marker.innerHTML = `
+      <span class="marker-label">${u.name}${u.isYou ? ' (You)' : ''}</span>
+      <div class="marker-dot" style="background:${u.color};box-shadow:0 2px 8px ${u.color}44;"></div>
+    `;
+    marker.querySelector('.marker-dot').insertAdjacentHTML('afterbegin',
+      `<span style="position:absolute;inset:-6px;border-radius:50%;background:${u.color}22;animation:pulse 2s ease-in-out infinite;"></span>`
+    );
+    container.appendChild(marker);
+  });
+}
+
+function renderStatusBar() {
+  const container = document.getElementById('statusUsers');
+  container.innerHTML = simUsers.map((u, i) => `
+    <div class="status-user" onclick="focusUser(${i})">
+      <div class="status-avatar" style="background:${u.color}">${u.name.charAt(0).toUpperCase()}</div>
+      <div class="status-info">
+        <div class="status-name">${u.name}${u.isYou ? ' (You)' : ''}</div>
+        <div class="status-location">${u.location}</div>
+      </div>
+      <div class="status-live"></div>
+    </div>
+  `).join('');
+}
+
+function simulateMovement() {
+  if (state.currentScreen !== 'map') return;
+  simUsers.forEach((u, i) => {
+    u.x += (Math.random() - 0.5) * 1.5;
+    u.y += (Math.random() - 0.5) * 1.2;
+    u.x = Math.max(10, Math.min(90, u.x));
+    u.y = Math.max(15, Math.min(80, u.y));
+    const marker = document.getElementById('marker-' + i);
+    if (marker) {
+      marker.style.left = u.x + '%';
+      marker.style.top = u.y + '%';
+    }
+  });
+}
+
+function focusUser(i) {
+  const marker = document.getElementById('marker-' + i);
+  if (marker) {
+    marker.style.transform = 'translate(-50%, -100%) scale(1.3)';
+    setTimeout(() => { marker.style.transform = 'translate(-50%, -100%)'; }, 600);
+  }
+  showToast(simUsers[i].name + ': ' + simUsers[i].location);
+}
+
+function centerMap() {
+  showToast('Map centered on your location');
+}
+
+function triggerSOS() {
+  showToast('SOS Alert sent to all members!');
+}
+
+// ── Hero map drawing ──
+function drawHeroMap() {
+  const canvas = document.getElementById('heroCanvas');
+  if (!canvas) return;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * 2;
+  canvas.height = rect.height * 2;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+  const w = rect.width, h = rect.height;
+
+  const cs = getComputedStyle(document.documentElement);
+  const land = cs.getPropertyValue('--map-land').trim();
+  const water = cs.getPropertyValue('--map-water').trim();
+  const road = cs.getPropertyValue('--map-road').trim();
+  const park = cs.getPropertyValue('--map-park').trim();
+
+  ctx.fillStyle = land;
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.fillStyle = water;
+  ctx.beginPath();
+  ctx.moveTo(w * 0.7, 0);
+  ctx.quadraticCurveTo(w * 0.85, h * 0.3, w, h * 0.15);
+  ctx.lineTo(w, 0);
+  ctx.fill();
+
+  ctx.fillStyle = park;
+  ctx.beginPath();
+  ctx.ellipse(w * 0.2, h * 0.6, w * 0.1, h * 0.08, 0.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(w * 0.75, h * 0.75, w * 0.07, h * 0.06, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = road;
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 6; i++) {
+    ctx.beginPath();
+    ctx.moveTo(0, h * (0.15 + i * 0.15));
+    ctx.lineTo(w, h * (0.12 + i * 0.15 + Math.random() * 0.05));
+    ctx.stroke();
+  }
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath();
+    ctx.moveTo(w * (0.12 + i * 0.2), 0);
+    ctx.lineTo(w * (0.14 + i * 0.2), h);
+    ctx.stroke();
+  }
+
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.4);
+  ctx.quadraticCurveTo(w * 0.5, h * 0.35, w, h * 0.5);
+  ctx.stroke();
+
+  ctx.fillStyle = road;
+  for (let i = 0; i < 25; i++) {
+    ctx.fillRect(Math.random()*w, Math.random()*h, 5+Math.random()*8, 4+Math.random()*6);
+  }
+
+  // Dashed line between markers
+  ctx.setLineDash([6, 4]);
+  ctx.strokeStyle = '#E8636F';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(w * 0.38, h * 0.45);
+  ctx.lineTo(w * 0.62, h * 0.55);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// Init
+drawHeroMap();
+window.addEventListener('resize', () => {
+  if (state.currentScreen === 'landing') drawHeroMap();
+  if (state.currentScreen === 'map') drawMapBackground();
+});
+</script>
+</body>
+  </html>
